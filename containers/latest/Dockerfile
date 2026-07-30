@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # https://hub.docker.com/_/ubuntu
-FROM ubuntu:resolute-20260627
+FROM ubuntu:resolute-20260707
 LABEL maintainer="https://github.com/lwmacct"
 ARG DEBIAN_FRONTEND=noninteractive
 ARG TARGETARCH
@@ -67,10 +67,10 @@ RUN set -eux; \
     echo;
 
 # https://github.com/etcd-io/etcd
-COPY --from=gcr.io/etcd-development/etcd:v3.6.12 /usr/local/bin/etcdctl /usr/local/bin/etcdctl
+COPY --from=gcr.io/etcd-development/etcd:v3.7.1 /usr/local/bin/etcdctl /usr/local/bin/etcdctl
 
 # https://github.com/VictoriaMetrics/VictoriaMetrics
-COPY --from=victoriametrics/vmagent:v1.145.0 /vmagent-prod /usr/local/bin/vmagent
+COPY --from=victoriametrics/vmagent:v1.148.0 /vmagent-prod /usr/local/bin/vmagent
 
 RUN set -eux; \
     echo "安装 docker-cli https://docs.docker.com/engine/install/ubuntu/"; \
@@ -104,12 +104,13 @@ RUN set -eux; \
 
 RUN set -eux; \
     echo "安装 oras"; \
-    _oras_version="1.3.2"; \
+    _tag_name="$(curl -fsSL https://api.github.com/repos/oras-project/oras/releases/latest | jq -er '.tag_name')"; \
+    _oras_version="${_tag_name#v}"; \
     case "$TARGETARCH" in \
         amd64|arm64) _arch="$TARGETARCH" ;; \
         *) echo "unsupported TARGETARCH=$TARGETARCH" >&2; exit 1 ;; \
     esac; \
-    curl -fL -o "/tmp/oras_${_oras_version}_linux_${_arch}.tar.gz" "https://github.com/oras-project/oras/releases/download/v${_oras_version}/oras_${_oras_version}_linux_${_arch}.tar.gz"; \
+    curl -fL -o "/tmp/oras_${_oras_version}_linux_${_arch}.tar.gz" "https://github.com/oras-project/oras/releases/download/${_tag_name}/oras_${_oras_version}_linux_${_arch}.tar.gz"; \
     mkdir -p /tmp/oras-install; \
     tar -zxf "/tmp/oras_${_oras_version}_linux_${_arch}.tar.gz" -C /tmp/oras-install; \
     mv /tmp/oras-install/oras /usr/local/bin/oras; \
