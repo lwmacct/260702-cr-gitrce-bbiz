@@ -57,7 +57,7 @@ stdout_logfile_maxbytes=50MB
 stdout_logfile_backups=10
 EOF
 
-  exec supervisord
+  exec supervisord -c /etc/supervisord.conf
 
 }
 
