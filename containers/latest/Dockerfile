@@ -70,7 +70,7 @@ RUN set -eux; \
 COPY --from=gcr.io/etcd-development/etcd:v3.7.1 /usr/local/bin/etcdctl /usr/local/bin/etcdctl
 
 # https://github.com/VictoriaMetrics/VictoriaMetrics
-COPY --from=victoriametrics/vmagent:v1.148.0 /vmagent-prod /usr/local/bin/vmagent
+COPY --from=victoriametrics/vmagent:v1.150.0 /vmagent-prod /usr/local/bin/vmagent
 
 RUN set -eux; \
     echo "安装 docker-cli https://docs.docker.com/engine/install/ubuntu/"; \
