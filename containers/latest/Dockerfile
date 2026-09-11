@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # https://hub.docker.com/_/ubuntu
-FROM ubuntu:resolute-20260707
+FROM ubuntu:resolute-20260901
 LABEL maintainer="https://github.com/lwmacct"
 ARG DEBIAN_FRONTEND=noninteractive
 ARG TARGETARCH
@@ -66,11 +66,35 @@ RUN set -eux; \
     rm -rf /tmp/storcli; \
     echo;
 
+RUN set -eux; \
+    echo "安装 zabbix-agent 6.0.46"; \
+    case "$TARGETARCH" in \
+        amd64|'') \
+            _zabbix_url='https://cdn.zabbix.com/zabbix/binaries/stable/6.0/6.0.46/zabbix_agent-6.0.46-linux-3.0-amd64-static.tar.gz'; \
+            if ! getent passwd zabbix >/dev/null; then useradd --system --home-dir /var/lib/zabbix --shell /usr/sbin/nologin zabbix; fi; \
+            mkdir -p /tmp/zabbix /etc/zabbix /var/lib/zabbix; \
+            curl -fL "$_zabbix_url" -o /tmp/zabbix/zabbix-agent.tar.gz; \
+            tar -xzf /tmp/zabbix/zabbix-agent.tar.gz -C /tmp/zabbix; \
+            install -o root -g root -m 0755 /tmp/zabbix/sbin/zabbix_agentd /usr/local/sbin/zabbix_agentd; \
+            install -o root -g root -m 0755 /tmp/zabbix/bin/zabbix_get /usr/local/bin/zabbix_get; \
+            install -o root -g root -m 0755 /tmp/zabbix/bin/zabbix_sender /usr/local/bin/zabbix_sender; \
+            install -o root -g root -m 0644 /tmp/zabbix/conf/zabbix_agentd.conf /etc/zabbix/zabbix_agentd.conf; \
+            install -d -o root -g root -m 0755 /etc/zabbix/zabbix_agentd.d; \
+            install -d -o zabbix -g zabbix -m 0755 /var/log/zabbix; \
+            sed -i 's@^LogFile=.*@LogFile=/var/log/zabbix/zabbix_agentd.log@' /etc/zabbix/zabbix_agentd.conf; \
+            rm -rf /tmp/zabbix; \
+            ;; \
+        *) \
+            echo "skip zabbix-agent for TARGETARCH=$TARGETARCH (amd64 static binary only)"; \
+            ;; \
+    esac; \
+    echo;
+
 # https://github.com/etcd-io/etcd
 COPY --from=gcr.io/etcd-development/etcd:v3.7.1 /usr/local/bin/etcdctl /usr/local/bin/etcdctl
 
 # https://github.com/VictoriaMetrics/VictoriaMetrics
-COPY --from=victoriametrics/vmagent:v1.150.0 /vmagent-prod /usr/local/bin/vmagent
+COPY --from=victoriametrics/vmagent:v1.151.0 /vmagent-prod /usr/local/bin/vmagent
 
 RUN set -eux; \
     echo "安装 docker-cli https://docs.docker.com/engine/install/ubuntu/"; \
@@ -97,7 +121,8 @@ RUN set -eux; \
     apt-get install -y --no-install-recommends \
 				ipmitool dmidecode smartmontools hardinfo lsscsi nvme-cli \
 				dnsutils ripgrep fd-find \
-        redis virt-what freeipmi ; \
+                tcpdump iperf3 \
+                redis virt-what freeipmi ; \
     apt-get autoremove -y; \
     apt-get clean; \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*;
