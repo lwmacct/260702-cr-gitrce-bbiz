@@ -124,7 +124,7 @@ RUN set -eux; \
     apt-get install -y --no-install-recommends \
 				ipmitool dmidecode smartmontools hardinfo lsscsi nvme-cli \
 				dnsutils ripgrep fd-find \
-                tcpdump iperf3 \
+                tcpdump iperf3 lldpd \
                 redis virt-what freeipmi ; \
     apt-get autoremove -y; \
     apt-get clean; \
