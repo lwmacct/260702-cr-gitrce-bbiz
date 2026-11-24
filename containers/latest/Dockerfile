@@ -6,7 +6,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 ARG TARGETARCH
 # Ubuntu 26.04 的 python3.14 目前停在 3.14.4, 该版本带有 GH-140262 引入的循环 GC 回归,
 # 长连接/高频建 SSL context 的进程 RSS 会涨到数 GiB. 这里用 uv 托管解释器绕开发行版包.
-ARG PYTHON_VERSION=3.14.7
+ARG PYTHON_VERSION=3.14.10
 SHELL ["/bin/bash", "-lc"]
 
 RUN set -eux; \
