@@ -1,9 +1,12 @@
 # syntax=docker/dockerfile:1
 # https://hub.docker.com/_/ubuntu
-FROM ubuntu:resolute-20260901
+FROM ubuntu:resolute-20261105.1
 LABEL maintainer="https://github.com/lwmacct"
 ARG DEBIAN_FRONTEND=noninteractive
 ARG TARGETARCH
+# Ubuntu 26.04 的 python3.14 目前停在 3.14.4, 该版本带有 GH-140262 引入的循环 GC 回归,
+# 长连接/高频建 SSL context 的进程 RSS 会涨到数 GiB. 这里用 uv 托管解释器绕开发行版包.
+ARG PYTHON_VERSION=3.14.7
 SHELL ["/bin/bash", "-lc"]
 
 RUN set -eux; \
@@ -91,10 +94,10 @@ RUN set -eux; \
     echo;
 
 # https://github.com/etcd-io/etcd
-COPY --from=gcr.io/etcd-development/etcd:v3.7.1 /usr/local/bin/etcdctl /usr/local/bin/etcdctl
+COPY --from=gcr.io/etcd-development/etcd:v3.7.4 /usr/local/bin/etcdctl /usr/local/bin/etcdctl
 
 # https://github.com/VictoriaMetrics/VictoriaMetrics
-COPY --from=victoriametrics/vmagent:v1.151.0 /vmagent-prod /usr/local/bin/vmagent
+COPY --from=victoriametrics/vmagent:v1.157.0 /vmagent-prod /usr/local/bin/vmagent
 
 RUN set -eux; \
     echo "安装 docker-cli https://docs.docker.com/engine/install/ubuntu/"; \
@@ -146,7 +149,8 @@ RUN set -eux; \
     echo "安装 uv"; \
     curl -LsSf https://astral.sh/uv/install.sh | sh; \
     export PATH="/root/.local/bin:$PATH"; \
-    uv venv /opt/venv --system-site-packages; \
+    uv python install "${PYTHON_VERSION}"; \
+    uv venv /opt/venv --python "${PYTHON_VERSION}" --system-site-packages; \
     uv pip install --python /opt/venv/bin/python pip; \
     /opt/venv/bin/pip config set global.index-url https://mirrors.ustc.edu.cn/pypi/simple; \
     echo; 
@@ -165,6 +169,8 @@ RUN set -eux; \
 ENV PATH=/root/.local/bin:/opt/venv/bin:/opt/fluent-bit/bin:$PATH
 ENV TZ=Asia/Shanghai
 ENV PYTHONDONTWRITEBYTECODE=1
+# 让仓库脚本 boot/start.sh 里的 uv sync 使用托管的 Python, 而不是系统的 3.14.4
+ENV UV_PYTHON=${PYTHON_VERSION}
 
 WORKDIR /app/data
 COPY containers/latest/app/ /app/
